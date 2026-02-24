@@ -40,6 +40,36 @@ Each skill is a SKILL.md file that any compatible AI agent can load and use imme
 
 ---
 
+## Install Individual Skills
+
+Pick the sports you need. Each skill installs independently.
+
+### Sports Data
+
+| Skill | Sport | Install | Link |
+|-------|-------|---------|------|
+| `football-data` | Football (Soccer) | `npx skills add machina-sports/sports-skills@football-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/football-data) |
+| `nfl-data` | NFL | `npx skills add machina-sports/sports-skills@nfl-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/nfl-data) |
+| `nba-data` | NBA | `npx skills add machina-sports/sports-skills@nba-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/nba-data) |
+| `wnba-data` | WNBA | `npx skills add machina-sports/sports-skills@wnba-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/wnba-data) |
+| `nhl-data` | NHL | `npx skills add machina-sports/sports-skills@nhl-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/nhl-data) |
+| `mlb-data` | MLB | `npx skills add machina-sports/sports-skills@mlb-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/mlb-data) |
+| `tennis-data` | Tennis (ATP + WTA) | `npx skills add machina-sports/sports-skills@tennis-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/tennis-data) |
+| `cfb-data` | College Football | `npx skills add machina-sports/sports-skills@cfb-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/cfb-data) |
+| `cbb-data` | College Basketball | `npx skills add machina-sports/sports-skills@cbb-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/cbb-data) |
+| `golf-data` | Golf (PGA/LPGA/DP World) | `npx skills add machina-sports/sports-skills@golf-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/golf-data) |
+| `fastf1` | Formula 1 | `npx skills add machina-sports/sports-skills@fastf1` | [skills.sh](https://skills.sh/machina-sports/sports-skills/fastf1) |
+| `sports-news` | Multi-sport News | `npx skills add machina-sports/sports-skills@sports-news` | [skills.sh](https://skills.sh/machina-sports/sports-skills/sports-news) |
+
+### Prediction Markets
+
+| Skill | Platform | Install | Link |
+|-------|----------|---------|------|
+| `kalshi` | Kalshi (CFTC-regulated) | `npx skills add machina-sports/sports-skills@kalshi` | [skills.sh](https://skills.sh/machina-sports/sports-skills/kalshi) |
+| `polymarket` | Polymarket | `npx skills add machina-sports/sports-skills@polymarket` | [skills.sh](https://skills.sh/machina-sports/sports-skills/polymarket) |
+
+---
+
 ## Available Skills
 
 ### Sports Data
@@ -475,9 +505,7 @@ This project does not own, license, or redistribute any sports data. Each skill 
 
 This project is built on top of great open-source work and public APIs:
 
-- **[ESPN](https://www.espn.com)** — for keeping their web endpoints accessible. The backbone of football scores, standings, schedules, lineups, match stats, and timelines across all 13 leagues. Also powers the NFL, NBA, WNBA, NHL, MLB, and Tennis skills.
-- **[ESPN](https://www.espn.com)** — for keeping their web endpoints accessible. The backbone of football scores, standings, schedules, lineups, match stats, and timelines across all 13 leagues. Also powers the NFL, NBA, WNBA, NHL, MLB, CFB, and CBB skills.
-- **[ESPN](https://www.espn.com)** — for keeping their web endpoints accessible. The backbone of football scores, standings, schedules, lineups, match stats, and timelines across all 13 leagues. Also powers the NFL, NBA, WNBA, NHL, MLB, and Golf skills.
+- **[ESPN](https://www.espn.com)** — for keeping their web endpoints accessible. Powers 11 of our 14 skills: Football (13 leagues), NFL, NBA, WNBA, NHL, MLB, Tennis, College Football, College Basketball, and Golf.
 - **[Fantasy Premier League](https://fantasy.premierleague.com)** — for their community API powering injury news, player stats, ownership data, and ICT index for Premier League players.
 - **[Transfermarkt](https://www.transfermarkt.com)** — for player market values, transfer history, and the richest player data in football.
 - **[Understat](https://understat.com)** — for xG data across the top 5 European leagues.
