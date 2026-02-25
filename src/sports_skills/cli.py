@@ -88,18 +88,6 @@ _REGISTRY = {
             "optional": ["interval", "fidelity"],
         },
         "get_last_trade_price": {"required": ["token_id"]},
-        # Bet analysis (pure computation)
-        "kelly_criterion": {"required": ["p", "b"]},
-        "monte_carlo_sim": {
-            "required": ["returns"],
-            "optional": ["n_simulations", "n_periods", "initial_bankroll", "seed"],
-        },
-        "max_drawdown": {"required": ["values"]},
-        "adjusted_kelly": {"required": ["p", "b"], "optional": ["edge_estimates"]},
-        "evaluate_bet": {
-            "required": ["p", "b"],
-            "optional": ["returns", "n_simulations", "n_periods", "initial_bankroll", "seed"],
-        },
     },
     "kalshi": {
         "get_exchange_status": {},
@@ -141,6 +129,29 @@ _REGISTRY = {
             ]
         },
         "get_sports_filters": {},
+    },
+    "betting": {
+        "convert_odds": {"required": ["odds", "from_format"]},
+        "devig": {"required": ["odds"], "optional": ["format"]},
+        "find_edge": {"required": ["fair_prob", "market_prob"]},
+        "kelly_criterion": {"required": ["fair_prob", "market_prob"]},
+        "monte_carlo_sim": {
+            "required": ["returns"],
+            "optional": ["n_simulations", "n_periods", "initial_bankroll", "seed"],
+        },
+        "max_drawdown": {"required": ["values"]},
+        "evaluate_bet": {
+            "required": ["book_odds", "market_prob"],
+            "optional": [
+                "book_format",
+                "outcome",
+                "returns",
+                "n_simulations",
+                "n_periods",
+                "initial_bankroll",
+                "seed",
+            ],
+        },
     },
     "news": {
         "fetch_feed": {
@@ -370,7 +381,7 @@ _INT_PARAMS = {
 }
 
 # Params that should be parsed as float
-_FLOAT_PARAMS = {"p", "b", "initial_bankroll"}
+_FLOAT_PARAMS = {"odds", "fair_prob", "market_prob", "initial_bankroll"}
 
 # Params that should be parsed as list (comma-separated)
 _LIST_PARAMS = {"tm_player_ids", "token_ids"}
@@ -423,6 +434,10 @@ def _load_module(name):
         from sports_skills import kalshi
 
         return kalshi
+    elif name == "betting":
+        from sports_skills import betting
+
+        return betting
     elif name == "news":
         from sports_skills import news
 
