@@ -1,3 +1,8 @@
+## [0.9.4]
+
+### Changed
+- **Docs:** Added dedicated README_PYPI.md for PyPI users showing pip/uv install and Python SDK usage
+
 ## [0.9.3] - 2026-02-25
 
 ### Fixed
