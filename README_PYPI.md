@@ -70,6 +70,7 @@ Execute a command:
 sports-skills nfl get_scoreboard --date 2026-02-24
 sports-skills football get_current_season --competition_id premier-league
 sports-skills polymarket get_markets --query "super bowl"
+sports-skills news fetch_items --query "Lando Norris" --limit 5
 ```
 
 All CLI output is printed as strict JSON, making it perfect for AI agents (Claude, GPT, Gemini) to parse and reason over.

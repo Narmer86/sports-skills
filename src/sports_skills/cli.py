@@ -7,7 +7,7 @@ Examples:
     sports-skills football get_season_standings --season_id=premier-league-2025
     sports-skills polymarket get_sports_markets --limit=20
     sports-skills kalshi get_markets --series_ticker=KXNBA
-    sports-skills news fetch_items --google_news --query="Arsenal" --limit=5
+    sports-skills news fetch_items --query="Arsenal" --limit=5
     sports-skills f1 get_race_schedule --year=2025
     sports-skills nfl get_scoreboard
     sports-skills nfl get_standings --season=2025

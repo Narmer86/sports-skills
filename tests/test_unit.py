@@ -1240,6 +1240,67 @@ class TestCliOptionalDependencyErrors:
         assert "sports-skills" in err.hint
 
 
+class TestNewsQueryDefaults:
+    """Query-only news calls should route to Google News automatically."""
+
+    @staticmethod
+    def _fake_feed():
+        class _Feed:
+            status = 200
+            bozo = False
+            feed = {"title": "Demo Feed"}
+            entries = [
+                {
+                    "title": "Test Item",
+                    "link": "https://example.com/item",
+                    "published": "Wed, 25 Feb 2026 12:00:00 GMT",
+                    "summary": "Summary",
+                }
+            ]
+
+        return _Feed()
+
+    def test_fetch_items_query_without_url_uses_google_news(self, monkeypatch):
+        from sports_skills.news import fetch_items
+
+        captured = {}
+
+        def _fake_parse(url):
+            captured["url"] = url
+            return self._fake_feed()
+
+        monkeypatch.setattr("sports_skills.news._connector.feedparser.parse", _fake_parse)
+
+        result = fetch_items(query="Corinthians", limit=1)
+        assert result["status"] is True
+        assert "news.google.com/rss/search" in captured["url"]
+        assert result["data"]["url"] == captured["url"]
+        assert result["data"]["count"] == 1
+
+    def test_fetch_feed_query_without_url_uses_google_news(self, monkeypatch):
+        from sports_skills.news import fetch_feed
+
+        captured = {}
+
+        def _fake_parse(url):
+            captured["url"] = url
+            return self._fake_feed()
+
+        monkeypatch.setattr("sports_skills.news._connector.feedparser.parse", _fake_parse)
+
+        result = fetch_feed(query="NBA")
+        assert result["status"] is True
+        assert "news.google.com/rss/search" in captured["url"]
+        assert result["data"]["title"] == "Demo Feed"
+
+    def test_fetch_items_without_query_or_url_returns_clear_validation(self):
+        from sports_skills.news import fetch_items
+
+        result = fetch_items()
+        assert result["status"] is False
+        assert "Provide url or use a query for Google News" in result["message"]
+
+
 class TestParamsContract:
     """Verify _params() returns a wrapped dict in all modules.
 

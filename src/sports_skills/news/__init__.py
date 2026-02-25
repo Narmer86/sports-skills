@@ -32,8 +32,8 @@ def fetch_feed(
     """Fetch and parse an RSS/Atom feed.
 
     Args:
-        google_news: If True, use Google News RSS. Requires query.
-        query: Search query for Google News.
+        google_news: If True, use Google News RSS. Requires query unless url is provided.
+        query: Search query for Google News. If query is provided without url, Google News mode is used automatically.
         url: RSS feed URL (required if google_news=False).
         language: Language code for Google News (default: "en-US").
         country: Country code for Google News (default: "US").
@@ -70,8 +70,8 @@ def fetch_items(
     """Fetch items from an RSS/Atom feed, optionally limited by count.
 
     Args:
-        google_news: If True, use Google News RSS. Requires query.
-        query: Search query for Google News.
+        google_news: If True, use Google News RSS. Requires query unless url is provided.
+        query: Search query for Google News. If query is provided without url, Google News mode is used automatically.
         url: RSS feed URL (required if google_news=False).
         limit: Max number of items to return.
         language: Language code for Google News (default: "en-US").

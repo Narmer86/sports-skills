@@ -92,17 +92,20 @@ def fetch_feed(request_data):
     google_news = params.get("google_news", False)
     if isinstance(google_news, str):
         google_news = google_news.lower() in ("true", "1", "yes")
+    query = params.get("query")
+    url = params.get("url")
+    if not url and query:
+        google_news = True
     sort_by_date = params.get("sort_by_date", False)
     if isinstance(sort_by_date, str):
         sort_by_date = sort_by_date.lower() in ("true", "1", "yes")
 
     # Determine the URL to use
     if google_news:
-        query = params.get("query")
         if not query:
             return {
                 "status": False,
-                "message": "Query is required when google_news is True.",
+                "message": "Query is required when google_news is True. Provide query or set a feed URL.",
             }
 
         language = params.get("language", "en-US")
@@ -111,11 +114,10 @@ def fetch_feed(request_data):
         before = params.get("before")
         url = _build_google_news_url(query, language, country, after, before)
     else:
-        url = params.get("url")
         if not url:
             return {
                 "status": False,
-                "message": "URL is required when google_news is False.",
+                "message": "URL is required when google_news is False. Provide url or use a query for Google News.",
             }
 
     try:
@@ -249,6 +251,10 @@ def fetch_items(request_data):
     google_news = params.get("google_news", False)
     if isinstance(google_news, str):
         google_news = google_news.lower() in ("true", "1", "yes")
+    query = params.get("query")
+    url = params.get("url")
+    if not url and query:
+        google_news = True
     sort_by_date = params.get("sort_by_date", False)
     if isinstance(sort_by_date, str):
         sort_by_date = sort_by_date.lower() in ("true", "1", "yes")
@@ -256,11 +262,10 @@ def fetch_items(request_data):
 
     # Determine the URL to use
     if google_news:
-        query = params.get("query")
         if not query:
             return {
                 "status": False,
-                "message": "Query is required when google_news is True.",
+                "message": "Query is required when google_news is True. Provide query or set a feed URL.",
             }
 
         language = params.get("language", "en-US")
@@ -269,11 +274,10 @@ def fetch_items(request_data):
         before = params.get("before")
         url = _build_google_news_url(query, language, country, after, before)
     else:
-        url = params.get("url")
         if not url:
             return {
                 "status": False,
-                "message": "URL is required when google_news is False.",
+                "message": "URL is required when google_news is False. Provide url or use a query for Google News.",
             }
 
     try:

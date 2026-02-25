@@ -381,6 +381,7 @@ RSS feed aggregation for sports news.
 | `fetch_items` | Filtered items (date range, language, country) |
 
 Supports any RSS/Atom feed URL and Google News queries.
+If you pass `query` without `url`, it automatically uses Google News.
 
 ---
 
