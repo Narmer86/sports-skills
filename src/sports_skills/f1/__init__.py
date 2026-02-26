@@ -1,6 +1,6 @@
 """Formula 1 data — race schedules, results, lap data, driver/team info.
 
-Install with: pip install sports-skills
+Install with: pip install sports-skills[f1]
 """
 
 from __future__ import annotations
