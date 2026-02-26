@@ -597,7 +597,9 @@ def _generate_schema(module_name):
         }
         tools.append(tool)
 
-    return {"sport": module_name, "tools": tools}
+    from sports_skills import __version__
+
+    return {"sport": module_name, "version": __version__, "tools": tools}
 
 
 def main():
