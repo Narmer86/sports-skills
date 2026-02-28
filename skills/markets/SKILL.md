@@ -9,12 +9,12 @@ description: |
 license: MIT
 metadata:
   author: machina-sports
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # Markets Orchestration
 
-Bridges ESPN live schedules (NBA, NFL, MLB, NHL, WNBA, CFB, CBB) with Kalshi and Polymarket prediction markets.
+Bridges ESPN live schedules (NBA, NFL, MLB, NHL, WNBA, CFB, CBB) with Kalshi and Polymarket prediction markets. Passes sport context to both platforms for accurate single-game market matching.
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ Bridges ESPN live schedules (NBA, NFL, MLB, NHL, WNBA, CFB, CBB) with Kalshi and
 sports-skills markets get_todays_markets --sport=nba
 
 # Search for a team across both exchanges
-sports-skills markets search_entity --query="Lakers"
+sports-skills markets search_entity --query="Lakers" --sport=nba
 
 # Compare ESPN odds vs prediction market prices for a game
 sports-skills markets compare_odds --sport=nba --event_id=401234567
@@ -46,7 +46,7 @@ Python SDK:
 from sports_skills import markets
 
 markets.get_todays_markets(sport="nba")
-markets.search_entity(query="Lakers")
+markets.search_entity(query="Lakers", sport="nba")
 markets.compare_odds(sport="nba", event_id="401234567")
 markets.get_sport_markets(sport="nfl")
 markets.get_sport_schedule(sport="nba", date="2025-02-26")
@@ -54,29 +54,35 @@ markets.normalize_price(price=0.65, source="polymarket")
 markets.evaluate_market(sport="nba", event_id="401234567")
 ```
 
+## Important Notes
+
+- **Sport context is passed through.** When you specify `--sport=nba`, the orchestrator maps it to the correct Polymarket sport code and Kalshi series ticker automatically.
+- **Both platforms use sport-aware search.** Polymarket uses its `/sports` config to resolve sport→series_id; Kalshi uses `KXNBA`, `KXNFL`, etc.
+- **Prices are normalized.** ESPN uses American odds, Polymarket uses 0-1 probability, Kalshi uses 0-100 integer. The orchestrator normalizes everything to implied probability for comparison.
+
 ## Commands
 
 | Command | Required | Optional | Description |
 |---|---|---|---|
-| `get_todays_markets` | | sport, date | Fetch ESPN schedule → search both exchanges → unified dashboard |
-| `search_entity` | query | sport | Search Kalshi + Polymarket for a team/player/event name |
+| `get_todays_markets` | | sport, date | Fetch ESPN schedule → search both exchanges with sport context → unified dashboard |
+| `search_entity` | query | sport | Search Kalshi + Polymarket for a team/player/event name (passes sport to both platforms) |
 | `compare_odds` | sport, event_id | | ESPN odds + prediction market prices → normalized side-by-side + arb check |
-| `get_sport_markets` | sport | status, limit | Sports-filtered market listing on both platforms |
+| `get_sport_markets` | sport | status, limit | Sport-filtered market listing on both platforms (uses sport code, not text query) |
 | `get_sport_schedule` | | sport, date | Unified ESPN schedule across one or all sports |
 | `normalize_price` | price, source | | Convert any source format to common {implied_prob, american, decimal} |
 | `evaluate_market` | sport, event_id | token_id, kalshi_ticker, outcome | ESPN odds + market price → devig → edge → Kelly |
 
 ## Supported Sports
 
-| Sport | Key | Kalshi Series |
-|---|---|---|
-| NFL | `nfl` | KXNFL |
-| NBA | `nba` | KXNBA |
-| MLB | `mlb` | KXMLB |
-| NHL | `nhl` | KXNHL |
-| WNBA | `wnba` | KXWNBA |
-| College Football | `cfb` | KXCFB |
-| College Basketball | `cbb` | KXCBB |
+| Sport | Key | Kalshi Series | Polymarket Code |
+|---|---|---|---|
+| NFL | `nfl` | KXNFL | `nfl` |
+| NBA | `nba` | KXNBA | `nba` |
+| MLB | `mlb` | KXMLB | `mlb` |
+| NHL | `nhl` | KXNHL | `nhl` |
+| WNBA | `wnba` | KXWNBA | `wnba` |
+| College Football | `cfb` | KXCFB | `cfb` |
+| College Basketball | `cbb` | KXCBB | `cbb` |
 
 ## Workflows
 
@@ -91,8 +97,8 @@ sports-skills markets get_todays_markets --sport=nba
 Returns each game with:
 - ESPN game info (teams, time, status)
 - ESPN DraftKings odds (American format)
-- Matching Kalshi markets (scoped to KXNBA series)
-- Matching Polymarket markets (text search, sports-filtered)
+- Matching Kalshi markets (via `search_markets(sport='nba')`)
+- Matching Polymarket markets (via `search_markets(sport='nba')`)
 
 ### Find Arb on a Specific Game
 
@@ -123,7 +129,7 @@ Find all prediction markets related to a team:
 sports-skills markets search_entity --query="Chiefs" --sport=nfl
 ```
 
-Returns Kalshi events (scoped to KXNFL) and Polymarket markets matching "Chiefs".
+Returns Kalshi events (via `search_markets(sport='nfl', query='Chiefs')`) and Polymarket markets (via `search_markets(sport='nfl', query='Chiefs')`).
 
 ## Price Normalization
 

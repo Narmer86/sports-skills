@@ -1,12 +1,25 @@
-# Common Series Tickers
+# Sport Codes & Series Tickers
+
+## Sport Codes (use with search_markets, get_todays_events)
+
+| Sport | Code | Series Ticker |
+|---|---|---|
+| NBA | `nba` | KXNBA |
+| NFL | `nfl` | KXNFL |
+| MLB | `mlb` | KXMLB |
+| NHL | `nhl` | KXNHL |
+| WNBA | `wnba` | KXWNBA |
+| College Football | `cfb` | KXCFB |
+| College Basketball | `cbb` | KXCBB |
+
+Use `get_sports_config()` to see all available codes.
+
+## Soccer Series Tickers (raw API only)
 
 **IMPORTANT:** On Kalshi, "Football" = American Football (NFL). Soccer is under "Soccer".
 
-| Sport | Series Ticker | Notes |
-|-------|--------------|-------|
-| NBA | `KXNBA` | Games + futures |
-| NFL | `KXNFL` | Games + futures |
-| MLB | `KXMLB` | Games + futures |
+| League | Series Ticker | Notes |
+|---|---|---|
 | Champions League | `KXUCL` | Futures (winner) |
 | La Liga | `KXLALIGA` | Futures (winner) |
 | Bundesliga | `KXBUNDESLIGA` | Futures (winner) |
@@ -17,3 +30,5 @@
 | Conference League | `KXUECL` | Futures |
 
 Not all soccer leagues have futures/winner markets. EPL has match-day games but **no title winner** market. Use `get_sports_filters()` to discover all available competitions.
+
+Soccer leagues are not yet mapped to sport codes — use `get_markets(series_ticker="KXUCL", status="open")` directly.
