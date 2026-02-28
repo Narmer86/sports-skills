@@ -33,10 +33,19 @@ from sports_skills.kalshi._connector import (
     get_series_list as _get_series_list,
 )
 from sports_skills.kalshi._connector import (
+    get_sports_config as _get_sports_config,
+)
+from sports_skills.kalshi._connector import (
     get_sports_filters as _get_sports_filters,
 )
 from sports_skills.kalshi._connector import (
+    get_todays_events as _get_todays_events,
+)
+from sports_skills.kalshi._connector import (
     get_trades as _get_trades,
+)
+from sports_skills.kalshi._connector import (
+    search_markets as _search_markets,
 )
 
 
@@ -160,3 +169,41 @@ def get_market_candlesticks(
 def get_sports_filters() -> dict:
     """Get available sports filter categories (leagues, teams, etc.)."""
     return _get_sports_filters(_req())
+
+
+def get_sports_config() -> dict:
+    """Get available sport codes and their Kalshi series tickers.
+
+    Returns sport codes you can use with search_markets(sport=...) and
+    get_todays_events(sport=...). Examples: 'nba', 'nfl', 'nhl', 'mlb',
+    'wnba', 'cfb', 'cbb'.
+    """
+    return _get_sports_config(_req())
+
+
+def get_todays_events(*, sport: str, limit: int = 50) -> dict:
+    """Get today's events (single-game markets) for a specific sport.
+
+    Args:
+        sport: Sport code — 'nba', 'nfl', 'nhl', 'mlb', 'wnba', 'cfb', 'cbb'.
+        limit: Max events (default: 50, max: 200).
+    """
+    return _get_todays_events(_req(sport=sport, limit=limit))
+
+
+def search_markets(
+    *,
+    sport: str | None = None,
+    query: str | None = None,
+    status: str = "open",
+    limit: int = 50,
+) -> dict:
+    """Search Kalshi markets by sport and/or keyword.
+
+    Args:
+        sport: Sport code (e.g. 'nba', 'nfl'). Resolves to series_ticker.
+        query: Keyword to match in event/market titles.
+        status: Market status filter (default: 'open').
+        limit: Max results (default: 50, max: 200).
+    """
+    return _search_markets(_req(sport=sport, query=query, status=status, limit=limit))

@@ -182,6 +182,14 @@ _REGISTRY = {
             ]
         },
         "get_sports_filters": {},
+        "get_sports_config": {},
+        "get_todays_events": {
+            "required": ["sport"],
+            "optional": ["limit"],
+        },
+        "search_markets": {
+            "optional": ["sport", "query", "status", "limit"],
+        },
     },
     "betting": {
         "convert_odds": {"required": ["odds", "from_format"]},

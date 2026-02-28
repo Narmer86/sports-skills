@@ -31,6 +31,18 @@ KALSHI_SERIES = {
     "cbb": "KXCBB",
 }
 
+# Maps common sport codes to Polymarket sport codes for the /sports endpoint.
+# Polymarket covers far more leagues; these are the shared ones with ESPN.
+POLYMARKET_SPORTS = {
+    "nfl": "nfl",
+    "nba": "nba",
+    "mlb": "mlb",
+    "nhl": "nhl",
+    "wnba": "wnba",
+    "cfb": "cfb",
+    "cbb": "cbb",
+}
+
 SCOREBOARD_SPORTS = {"nfl", "nba", "mlb", "nhl", "wnba", "cfb", "cbb"}
 
 # ESPN sport module name → SPORT_PATH mapping (for reference)
@@ -237,19 +249,15 @@ def _fetch_all_schedules(sports: list[str], date: str | None) -> tuple[list[dict
 
 
 def _search_kalshi(entity: str, sport: str | None) -> list[dict]:
-    """Scope to KALSHI_SERIES[sport], fetch open events, fuzzy-match titles."""
+    """Use kalshi.search_markets for sport-filtered search with fuzzy matching."""
     try:
         from sports_skills import kalshi
     except ImportError:
         logger.warning("kalshi module not available")
         return []
 
-    kwargs = {"status": "open"}
-    if sport and sport in KALSHI_SERIES:
-        kwargs["series_ticker"] = KALSHI_SERIES[sport]
-
     try:
-        result = kalshi.get_events(**kwargs)
+        result = kalshi.search_markets(sport=sport, query=entity)
     except Exception as exc:
         logger.warning("Kalshi search failed: %s", exc)
         return []
@@ -258,43 +266,35 @@ def _search_kalshi(entity: str, sport: str | None) -> list[dict]:
         return []
 
     data = result.get("data", {})
-    events = data.get("events", [])
-    if not isinstance(events, list):
-        events = []
+    markets = data.get("markets", [])
+    if not isinstance(markets, list):
+        markets = []
 
-    # Fuzzy-match entity against event titles
-    matched = _best_matches(entity, events, "title")
-
-    results = []
-    for event in matched:
-        markets = event.get("markets", [])
-        if not isinstance(markets, list):
-            markets = []
-
-        results.append({
-            "source": "kalshi",
-            "event_ticker": event.get("event_ticker", ""),
-            "title": event.get("title", ""),
-            "category": event.get("category", ""),
-            "series_ticker": event.get("series_ticker", ""),
-            "status": event.get("status", ""),
-            "markets": [
-                {
-                    "ticker": m.get("ticker", ""),
-                    "title": m.get("title", m.get("subtitle", "")),
-                    "yes_price": m.get("yes_bid", m.get("last_price", 0)),
-                    "no_price": m.get("no_bid", 0),
-                    "volume": m.get("volume", 0),
-                }
-                for m in markets
-            ],
+    # Group markets by event_ticker for consistent output
+    events_map: dict[str, dict] = {}
+    for m in markets:
+        event_ticker = m.get("event_ticker", "")
+        if event_ticker not in events_map:
+            events_map[event_ticker] = {
+                "source": "kalshi",
+                "event_ticker": event_ticker,
+                "title": m.get("event_title", ""),
+                "status": m.get("status", ""),
+                "markets": [],
+            }
+        events_map[event_ticker]["markets"].append({
+            "ticker": m.get("ticker", ""),
+            "title": m.get("title", ""),
+            "yes_price": m.get("yes_bid", m.get("last_price", 0)),
+            "no_price": m.get("no_bid", 0),
+            "volume": m.get("volume", 0),
         })
 
-    return results
+    return list(events_map.values())
 
 
-def _search_polymarket(entity: str) -> list[dict]:
-    """Use polymarket.search_markets(query=entity) — already sports-filtered via tag_id=1."""
+def _search_polymarket(entity: str, sport: str | None = None) -> list[dict]:
+    """Use polymarket.search_markets with sport filtering when available."""
     try:
         from sports_skills import polymarket
     except ImportError:
@@ -302,7 +302,11 @@ def _search_polymarket(entity: str) -> list[dict]:
         return []
 
     try:
-        result = polymarket.search_markets(query=entity, tag_id=1)
+        kwargs = {"query": entity, "tag_id": 1}
+        # Use sport-based filtering for much better results
+        if sport and sport in POLYMARKET_SPORTS:
+            kwargs["sport"] = POLYMARKET_SPORTS[sport]
+        result = polymarket.search_markets(**kwargs)
     except Exception as exc:
         logger.warning("Polymarket search failed: %s", exc)
         return []
@@ -317,21 +321,22 @@ def _search_polymarket(entity: str) -> list[dict]:
 
     results = []
     for market in markets:
-        tokens = market.get("tokens", [])
+        # Outcomes come from the normalized market structure
         outcomes = []
-        for token in tokens:
+        for o in market.get("outcomes", []):
             outcomes.append({
-                "token_id": token.get("token_id", ""),
-                "outcome": token.get("outcome", ""),
-                "price": token.get("price", 0),
+                "token_id": o.get("clob_token_id", ""),
+                "outcome": o.get("name", ""),
+                "price": o.get("price", 0),
             })
 
         results.append({
             "source": "polymarket",
-            "market_id": market.get("id", market.get("condition_id", "")),
-            "title": market.get("question", market.get("title", "")),
+            "market_id": market.get("id", ""),
+            "title": market.get("question", ""),
             "slug": market.get("slug", ""),
             "volume": market.get("volume", 0),
+            "sports_market_type": market.get("sports_market_type", ""),
             "outcomes": outcomes,
         })
 
@@ -427,7 +432,7 @@ def get_todays_markets(request_data: dict) -> dict:
             warnings.append(f"Kalshi search failed for '{search_query}': {exc}")
 
         try:
-            poly_matches = _search_polymarket(search_query)
+            poly_matches = _search_polymarket(search_query, game["sport"])
         except Exception as exc:
             warnings.append(f"Polymarket search failed for '{search_query}': {exc}")
 
@@ -476,7 +481,7 @@ def search_entity(request_data: dict) -> dict:
         warnings.append(f"Kalshi search failed: {exc}")
 
     try:
-        poly_results = _search_polymarket(query)
+        poly_results = _search_polymarket(query, sport)
     except Exception as exc:
         warnings.append(f"Polymarket search failed: {exc}")
 
@@ -567,7 +572,7 @@ def compare_odds(request_data: dict) -> dict:
             warnings.append(f"Kalshi search failed: {exc}")
 
         try:
-            poly_matches = _search_polymarket(search_query)
+            poly_matches = _search_polymarket(search_query, sport)
         except Exception as exc:
             warnings.append(f"Polymarket search failed: {exc}")
 
@@ -658,16 +663,17 @@ def get_sport_markets(request_data: dict) -> dict:
         except Exception as exc:
             warnings.append(f"Kalshi fetch failed: {exc}")
 
-    # Polymarket: search by sport name (sports-filtered via tag_id=1)
-    try:
-        from sports_skills import polymarket
-        result = polymarket.search_markets(query=sport, tag_id=1, limit=limit)
-        if result.get("status"):
-            poly_markets = result.get("data", {}).get("markets", [])
-            if not isinstance(poly_markets, list):
-                poly_markets = []
-    except Exception as exc:
-        warnings.append(f"Polymarket fetch failed: {exc}")
+    # Polymarket: filter by sport code via series_id
+    if sport in POLYMARKET_SPORTS:
+        try:
+            from sports_skills import polymarket
+            result = polymarket.search_markets(sport=POLYMARKET_SPORTS[sport], limit=limit)
+            if result.get("status"):
+                poly_markets = result.get("data", {}).get("markets", [])
+                if not isinstance(poly_markets, list):
+                    poly_markets = []
+        except Exception as exc:
+            warnings.append(f"Polymarket fetch failed: {exc}")
 
     return _success_partial(
         {
@@ -831,7 +837,7 @@ def evaluate_market(request_data: dict) -> dict:
         if search_query:
             poly_matches = []
             try:
-                poly_matches = _search_polymarket(search_query)
+                poly_matches = _search_polymarket(search_query, sport)
             except Exception as exc:
                 warnings.append(f"Polymarket search failed: {exc}")
 
