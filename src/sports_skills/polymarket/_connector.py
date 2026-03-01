@@ -679,8 +679,8 @@ def search_markets(request_data):
     """
     try:
         params = request_data.get("params", {})
-        query = params.get("query", "").lower()
-        sport = params.get("sport", "").lower()
+        query = str(params.get("query") or "").lower()
+        sport = str(params.get("sport") or "").lower()
         limit = min(int(params.get("limit", 20)), 100)
         smt = params.get("sports_market_types", "")
 
@@ -868,7 +868,7 @@ def get_todays_events(request_data):
     """
     try:
         params = request_data.get("params", {})
-        sport = params.get("sport", "").lower()
+        sport = str(params.get("sport") or "").lower()
         limit = min(int(params.get("limit", 50)), 100)
 
         if not sport:

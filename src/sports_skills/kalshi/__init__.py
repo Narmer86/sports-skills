@@ -202,7 +202,7 @@ def search_markets(
     status: str = "open",
     limit: int = 50,
 ) -> dict:
-    """Search Kalshi markets by sport and/or keyword.
+    """Search Kalshi markets. ALWAYS provide the sport code if known, otherwise Kalshi will only search top global events. Supports team mascots (e.g. Lakers).
 
     IMPORTANT: For single-game markets, always pass sport (e.g. sport='epl').
     Without it, search returns only high-volume futures and misses game markets.

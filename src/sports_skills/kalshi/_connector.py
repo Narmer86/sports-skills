@@ -481,13 +481,13 @@ def get_sports_filters(request_data):
 # Football leagues have multiple series per league (game, total, btts, spread, goal).
 KALSHI_SERIES = {
     # US sports — single series per sport
-    "nfl": ["KXNFL"],
-    "nba": ["KXNBA"],
-    "mlb": ["KXMLB"],
-    "nhl": ["KXNHL"],
-    "wnba": ["KXWNBA"],
-    "cfb": ["KXCFB"],
-    "cbb": ["KXCBB"],
+    "nfl": ["KXNFL", "KXNFLGAME", "KXNFLSPREAD", "KXNFLTOTAL", "KXNFLTEAMTOTAL", "KXNFLANYTD", "KXNFL1HWINNER", "KXNFL2HWINNER"],
+    "nba": ["KXNBA", "KXNBAGAME", "KXNBASPREAD", "KXNBATOTAL", "KXNBATEAMTOTAL", "KXNBAPTS", "KXNBAPRA", "KXNBAREB", "KXNBAAST", "KXNBA3PT"],
+    "mlb": ["KXMLB", "KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL", "KXMLBTEAMTOTAL", "KXMLBHR", "KXMLB1H"],
+    "nhl": ["KXNHL", "KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL", "KXNHLTEAMTOTAL", "KXNHLPTS", "KXNHLGOAL"],
+    "wnba": ["KXWNBA", "KXWNBAGAME", "KXWNBASPREAD", "KXWNBATOTAL", "KXWNBAPTS"],
+    "cfb": ["KXCFB", "KXCFBGAME", "KXCFBSPREAD", "KXCFBTOTAL"],
+    "cbb": ["KXCBB", "KXCBBSPREAD", "KXCBBCGAME", "KXCBBTOTAL"],
     # Football — multiple series per league (game, total, btts, spread, goal)
     "epl": ["KXEPLGAME", "KXEPLTOTAL", "KXEPLBTTS", "KXEPLSPREAD", "KXEPLGOAL"],
     "ucl": ["KXUCL", "KXUEFAGAME"],
@@ -530,7 +530,7 @@ def get_todays_events(request_data):
     """
     try:
         params = request_data.get("params", {})
-        sport = params.get("sport", "").lower()
+        sport = str(params.get("sport") or "").lower()
         limit = min(int(params.get("limit", 50)), 200)
 
         if not sport:
@@ -588,8 +588,8 @@ def search_markets(request_data):
     """
     try:
         params = request_data.get("params", {})
-        sport = params.get("sport", "").lower()
-        query = params.get("query", "").lower()
+        sport = str(params.get("sport") or "").lower()
+        query = str(params.get("query") or "").lower()
         status = params.get("status", "open")
         limit = min(int(params.get("limit", 50)), 200)
 
@@ -639,14 +639,64 @@ def search_markets(request_data):
         all_markets = []
         for event in all_events:
             title = event.get("title", "")
-            if query and query not in title.lower():
+            
+            # Normalization for Kalshi's strict team names
+            normalized_query = str(query or "").lower()
+            norm_map = {
+                "lakers": ["los angeles l", "lakers"],
+                "clippers": ["los angeles c", "clippers"],
+                "warriors": ["golden state", "warriors"],
+                "knicks": ["new york", "knicks"],
+                "nets": ["brooklyn", "nets"],
+                "timberwolves": ["minnesota", "timberwolves"],
+                "spurs": ["san antonio", "spurs"],
+                "thunder": ["oklahoma city", "okc", "thunder"],
+                "cavaliers": ["cleveland", "cavs", "cavaliers"],
+                "mavericks": ["dallas", "mavs", "mavericks"],
+                "76ers": ["philadelphia", "sixers", "76ers"],
+                "celtics": ["boston", "celtics"],
+                "heat": ["miami", "heat"],
+                "bucks": ["milwaukee", "bucks"],
+                "nuggets": ["denver", "nuggets"],
+                "suns": ["phoenix", "suns"],
+                "pelicans": ["new orleans", "pelicans"],
+                "grizzlies": ["memphis", "grizzlies"],
+                "bulls": ["chicago", "bulls"],
+                "kings": ["sacramento", "kings"],
+                "pacers": ["indiana", "pacers"],
+                "magic": ["orlando", "magic"],
+                "hawks": ["atlanta", "hawks"],
+                "pistons": ["detroit", "pistons"],
+                "hornets": ["charlotte", "hornets"],
+                "jazz": ["utah", "jazz"],
+                "raptors": ["toronto", "raptors"],
+                "blazers": ["portland", "trail blazers", "blazers"],
+                "rockets": ["houston", "rockets"],
+                "wizards": ["washington", "wizards"]
+            }
+            
+            # Expand query into possible matches
+            search_terms = [normalized_query]
+            for mascot, kalshi_names in norm_map.items():
+                if mascot in normalized_query:
+                    search_terms.extend(kalshi_names)
+            
+            if query:
+                # Check if ANY of our expanded search terms match the title
+                title_match = any(term in str(title).lower() for term in search_terms)
+                
                 # Also check market titles
+                event_match = False
                 markets = event.get("markets", [])
-                event_match = any(
-                    query in m.get("title", "").lower() or query in m.get("subtitle", "").lower()
-                    for m in markets
-                )
-                if not event_match:
+                if not title_match:
+                    for m in markets:
+                        m_title = str(m.get("title", "")).lower()
+                        m_sub = str(m.get("subtitle", "")).lower()
+                        if any(term in m_title or term in m_sub for term in search_terms):
+                            event_match = True
+                            break
+                
+                if not (title_match or event_match):
                     continue
 
             markets = event.get("markets", [])

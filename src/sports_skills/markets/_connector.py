@@ -418,7 +418,7 @@ def get_todays_markets(request_data: dict) -> dict:
     date = params.get("date")
 
     if sport:
-        sport = sport.lower()
+        sport = str(sport).lower()
         if sport not in SCOREBOARD_SPORTS:
             return _error(f"Unknown sport '{sport}'. Available: {', '.join(sorted(SCOREBOARD_SPORTS))}")
         sports = [sport]
@@ -487,7 +487,7 @@ def search_entity(request_data: dict) -> dict:
         return _error("query is required")
 
     if sport:
-        sport = sport.lower()
+        sport = str(sport).lower()
 
     kalshi_results = []
     poly_results = []
@@ -526,7 +526,7 @@ def compare_odds(request_data: dict) -> dict:
         event_id (str): ESPN event ID.
     """
     params = request_data.get("params", {})
-    sport = params.get("sport", "").lower()
+    sport = str(params.get("sport") or "").lower()
     event_id = params.get("event_id", "")
 
     if not sport:
@@ -654,7 +654,7 @@ def get_sport_markets(request_data: dict) -> dict:
         limit (int): Max results per platform (default: 20).
     """
     params = request_data.get("params", {})
-    sport = params.get("sport", "").lower()
+    sport = str(params.get("sport") or "").lower()
     status = params.get("status", "open")
     limit = int(params.get("limit", 20))
 
@@ -772,7 +772,7 @@ def evaluate_market(request_data: dict) -> dict:
         outcome (int): Which outcome to evaluate (0=home, 1=away, default: 0).
     """
     params = request_data.get("params", {})
-    sport = params.get("sport", "").lower()
+    sport = str(params.get("sport") or "").lower()
     event_id = params.get("event_id", "")
     token_id = params.get("token_id")
     kalshi_ticker = params.get("kalshi_ticker")
