@@ -48,7 +48,7 @@ dev = ["ruff>=0.9", "pytest>=8.0", "fastf1>=3.0", "pandas>=2.0"]
 sports-skills = "sports_skills.cli:main"
 
 [tool.ruff]
-target-version = "0.16.1"
+target-version = "py39"
 line-length = 120
 src = ["src"]
 
