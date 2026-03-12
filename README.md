@@ -40,6 +40,7 @@ A collection of agent skills that wrap **publicly available** sports data source
 - **College Football (CFB)**: ESPN — scores, standings, rosters, schedules, AP/Coaches rankings, news
 - **College Basketball (CBB)**: ESPN — scores, standings, rosters, schedules, AP/Coaches rankings, news
 - **Golf**: ESPN — PGA Tour, LPGA, DP World Tour leaderboards, schedules, player profiles, news
+- **Volleyball**: Nevobo — Dutch volleyball (Eredivisie, Topdivisie, Superdivisie) standings, schedules, results, clubs
 - **Formula 1**: FastF1 open-source library — sessions, lap data, race results
 - **Prediction Markets**: Kalshi and Polymarket public APIs — markets, prices, order books
 - **Sports News**: RSS feeds and Google News — any public feed
@@ -67,6 +68,7 @@ Each skill is a SKILL.md file that any compatible AI agent can load and use imme
 | `cfb-data` | College Football (CFB) | 9 | ESPN |
 | `cbb-data` | College Basketball (CBB) | 9 | ESPN |
 | `golf-data` | Golf (PGA/LPGA/DP World) | 4 | ESPN |
+| `volleyball-data` | Volleyball (Dutch) | 10 | Nevobo |
 | `fastf1` | Formula 1 | 6 | FastF1 (free library) |
 | `sports-news` | Multi-sport | 2 | Any RSS feed, Google News |
 | `metadata` | Multi-sport | 5 | TheSportsDB (free API) |
@@ -136,6 +138,9 @@ Once installed, your agent can call commands directly:
 **Get PGA leaderboard:**
 > "What's the PGA Tour leaderboard right now?"
 
+**Get Dutch volleyball standings:**
+> "Show me the Eredivisie volleyball standings"
+
 **Check prediction market odds:**
 > "What are the Polymarket odds for the Champions League final?"
 
@@ -160,6 +165,7 @@ Pick the sports you need. Each skill installs independently.
 | `cfb-data` | College Football | `npx skills add machina-sports/sports-skills@cfb-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/cfb-data) |
 | `cbb-data` | College Basketball | `npx skills add machina-sports/sports-skills@cbb-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/cbb-data) |
 | `golf-data` | Golf (PGA/LPGA/DP World) | `npx skills add machina-sports/sports-skills@golf-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/golf-data) |
+| `volleyball-data` | Volleyball (Dutch) | `npx skills add machina-sports/sports-skills@volleyball-data` | [skills.sh](https://skills.sh/machina-sports/sports-skills/volleyball-data) |
 | `fastf1` | Formula 1 | `npx skills add machina-sports/sports-skills@fastf1` | [skills.sh](https://skills.sh/machina-sports/sports-skills/fastf1) |
 | `sports-news` | Multi-sport News | `npx skills add machina-sports/sports-skills@sports-news` | [skills.sh](https://skills.sh/machina-sports/sports-skills/sports-news) |
 
@@ -336,6 +342,23 @@ PGA Tour, LPGA, and DP World Tour golf data via ESPN public endpoints. Tournamen
 | `get_player_info` | Individual golfer profile |
 | `get_news` | Golf news articles |
 
+### volleyball-data
+
+Dutch volleyball data via the Nevobo (Nederlandse Volleybalbond) open API. Covers Eredivisie, Topdivisie, Superdivisie, and 6,400+ lower-division poules.
+
+| Command | Description |
+|---------|-------------|
+| `get_competitions` | List all available competitions and leagues |
+| `get_standings` | League table (rank, team, matches, points) |
+| `get_schedule` | Upcoming matches (teams, venue, date) |
+| `get_results` | Match results (score, set-by-set scores) |
+| `get_clubs` | List volleyball clubs (name, city, province) |
+| `get_club_schedule` | Club's upcoming matches across all teams |
+| `get_club_results` | Club's results across all teams |
+| `get_poules` | Browse Nevobo poules (lower divisions discovery) |
+| `get_tournaments` | Tournament calendar |
+| `get_news` | Federation news |
+
 ### fastf1
 
 Formula 1 data via the [FastF1](https://github.com/theOehrly/Fast-F1) open-source library.
@@ -414,6 +437,7 @@ sports-skills.sh
 │   ├── cfb-data/SKILL.md             # College football scores, rankings
 │   ├── cbb-data/SKILL.md             # College basketball scores, rankings
 │   ├── golf-data/SKILL.md            # Golf leaderboards, schedules, profiles
+│   ├── volleyball-data/SKILL.md      # Dutch volleyball standings, results, clubs
 │   ├── fastf1/SKILL.md               # F1 sessions, laps, results
 │   ├── kalshi/SKILL.md               # Prediction markets (CFTC)
 │   ├── polymarket/SKILL.md           # Prediction markets (crypto)
@@ -510,6 +534,7 @@ This project does not own, license, or redistribute any sports data. Each skill 
 | FastF1 | Open-source library | Yes — [FastF1](https://github.com/theOehrly/Fast-F1) (MIT) |
 | Kalshi | Official public API | Yes — [Trade API v2](https://trading-api.readme.io) |
 | Polymarket | Official public APIs | Yes — [Gamma](https://gamma-api.polymarket.com) + [CLOB](https://docs.polymarket.com) |
+| Nevobo | Official public API | Yes — [Nevobo API](https://api.nevobo.nl) (open, unauthenticated) |
 | RSS / Google News | Standard RSS protocol | Yes — RSS is designed for syndication |
 
 **Important:**
@@ -525,7 +550,8 @@ This project does not own, license, or redistribute any sports data. Each skill 
 
 This project is built on top of great open-source work and public APIs:
 
-- **[ESPN](https://www.espn.com)** — for keeping their web endpoints accessible. Powers 11 of our 14 skills: Football (13 leagues), NFL, NBA, WNBA, NHL, MLB, Tennis, College Football, College Basketball, and Golf.
+- **[ESPN](https://www.espn.com)** — for keeping their web endpoints accessible. Powers 11 of our 15 skills: Football (13 leagues), NFL, NBA, WNBA, NHL, MLB, Tennis, College Football, College Basketball, and Golf.
+- **[Nevobo](https://www.nevobo.nl)** — the Nederlandse Volleybalbond, for their open API providing Dutch volleyball data across the full pyramid (6,400+ poules, 1,737 clubs).
 - **[Fantasy Premier League](https://fantasy.premierleague.com)** — for their community API powering injury news, player stats, ownership data, and ICT index for Premier League players.
 - **[Transfermarkt](https://www.transfermarkt.com)** — for player market values, transfer history, and the richest player data in football.
 - **[Understat](https://understat.com)** — for xG data across the top 5 European leagues.

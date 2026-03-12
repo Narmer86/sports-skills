@@ -45,6 +45,7 @@ pip install "sports-skills[dev]"
 - **US Sports**: NFL, NBA, WNBA, NHL, MLB, College Football (CFB), College Basketball (CBB) — live scores, standings, depth charts, injuries, and leaders
 - **Tennis**: ATP and WTA tournament scores, rankings, calendars, and player profiles
 - **Golf**: PGA, LPGA, and DP World tour scorecards and leaderboards
+- **Volleyball**: Nevobo — Dutch volleyball (Eredivisie, Topdivisie, Superdivisie) standings, schedules, results, clubs
 - **Racing**: Formula 1 (via FastF1) — lap times, telemetry, and race results
 - **Prediction Markets**: Polymarket & Kalshi live odds and order books
 - **News**: Multi-sport news aggregators
