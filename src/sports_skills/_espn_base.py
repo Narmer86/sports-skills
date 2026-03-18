@@ -259,6 +259,36 @@ def espn_web_request(sport_path, resource, params=None):
         return {"error": True, "message": "ESPN web API returned invalid JSON"}
 
 
+def espn_fitt_request(sport_path, resource, params=None):
+    """ESPN FITT API request (BPI/power index data). Rate-limited and cached.
+
+    Uses a different URL path from the standard site API:
+    https://site.web.api.espn.com/apis/fitt/v3/sports/{sport_path}/{resource}
+
+    Args:
+        sport_path: e.g. "basketball/mens-college-basketball"
+        resource: API resource, e.g. "powerindex"
+        params: Optional query parameters dict.
+    """
+    cache_key = f"espn_fitt:{sport_path}:{resource}:{json.dumps(params or {}, sort_keys=True)}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+    url = f"https://site.web.api.espn.com/apis/fitt/v3/sports/{sport_path}/{resource}"
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    headers = {"User-Agent": _USER_AGENT}
+    raw, err = _http_fetch(url, headers=headers, rate_limiter=_espn_rate_limiter)
+    if err:
+        return err
+    try:
+        data = json.loads(raw.decode())
+        _cache_set(cache_key, data, ttl=300)
+        return data
+    except (json.JSONDecodeError, ValueError):
+        return {"error": True, "message": "ESPN FITT API returned invalid JSON"}
+
+
 def espn_summary(sport_path, event_id, max_retries=_MAX_RETRIES):
     """ESPN game summary endpoint (box score, stats, play-by-play summary).
 

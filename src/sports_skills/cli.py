@@ -179,6 +179,7 @@ _REGISTRY = {
                 "market_type",
             ],
         },
+        "matchup_probability": {"required": ["bpi_a", "bpi_b"]},
     },
     "markets": {
         "get_todays_markets": {"optional": ["sport", "date"]},
@@ -386,6 +387,10 @@ _REGISTRY = {
         "get_futures": {"optional": ["limit", "season_year"]},
         "get_team_stats": {"required": ["team_id"], "optional": ["season_year", "season_type"]},
         "get_player_stats": {"required": ["player_id"], "optional": ["season_year", "season_type"]},
+        "get_power_index": {"optional": ["team_id", "limit", "page"]},
+        "get_tournament_projections": {"optional": ["limit"]},
+        "compare_teams": {"required": ["team_a_id", "team_b_id"]},
+        "find_upset_candidates": {"optional": ["min_seed", "max_seed"]},
     },
     "golf": {
         "get_leaderboard": {"required": ["tour"]},
@@ -438,6 +443,9 @@ _INT_PARAMS = {
     "week",
     "group",
     "outcome",
+    "page",
+    "min_seed",
+    "max_seed",
 }
 
 # Params that should be parsed as float
@@ -452,6 +460,8 @@ _FLOAT_PARAMS = {
     "close_line",
     "correlation",
     "price",
+    "bpi_a",
+    "bpi_b",
 }
 
 # Params that should be parsed as list (comma-separated)
@@ -787,6 +797,15 @@ def main():
 
     module_name = args.module
     command_name = args.command
+
+    # Universal command aliases for cross-sport abstraction (e.g., used by sportsclaw)
+    if command_name == "scores":
+        if module_name == "football":
+            command_name = "get_daily_schedule"
+        elif "get_scoreboard" in _REGISTRY.get(module_name, {}):
+            command_name = "get_scoreboard"
+        elif "get_leaderboard" in _REGISTRY.get(module_name, {}):
+            command_name = "get_leaderboard"
 
     if module_name not in _REGISTRY:
         _cli_error(

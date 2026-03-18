@@ -12,6 +12,7 @@ from sports_skills._espn_base import (
     ESPN_STATUS_MAP,
     _current_year,
     espn_core_request,
+    espn_fitt_request,
     espn_request,
     espn_summary,
     espn_web_request,
@@ -760,3 +761,375 @@ def get_player_stats(request_data):
     result["season_year"] = season_year
     result["season_type"] = season_type
     return result
+
+
+# ============================================================
+# BPI (Basketball Power Index) — ESPN FITT API
+# ============================================================
+
+# BPI field mappings: ESPN returns positional arrays, we map to named fields.
+_BPI_FIELDS = [
+    "bpi", "bpi_rank", "rank_change", "bpi_offense", "bpi_defense",
+    "win_pct", "sos_rank", "wins", "losses", "proj_wins", "proj_losses",
+    "conf_wins", "conf_losses", "proj_conf_wins", "proj_conf_losses",
+]
+
+_RESUME_FIELDS = [
+    "sor_rank", "proj_seed", "scurve", "quality_wins", "quality_losses",
+    "sos_past_rank", "nonconf_sos_rank",
+]
+
+_TOURNAMENT_FIELDS = [
+    "seed", "actual_seed", "_region",
+    "championship_pct", "champ_game_pct", "final_four_pct",
+    "elite_eight_pct", "sweet_sixteen_pct", "round_of_32_pct",
+]
+
+
+def _normalize_bpi_team(team_entry):
+    """Normalize a single team entry from the ESPN BPI response."""
+    team = team_entry.get("team", {})
+    result = {
+        "team": {
+            "id": str(team.get("id", "")),
+            "name": team.get("displayName", team.get("nickname", "")),
+            "abbreviation": team.get("abbreviation", ""),
+            "logo": team.get("logos", [{}])[0].get("href", "") if team.get("logos") else "",
+        },
+    }
+
+    # Parse BPI categories (positional arrays)
+    for cat in team_entry.get("categories", []):
+        cat_name = cat.get("name", "")
+        values = cat.get("values", [])
+
+        if cat_name in ("bpi", "bpiPlayoff"):
+            field_map = _BPI_FIELDS
+            dest_key = "bpi"
+        elif cat_name == "resume":
+            field_map = _RESUME_FIELDS
+            dest_key = "resume"
+        elif cat_name in ("tournament", "bpiTournament"):
+            field_map = _TOURNAMENT_FIELDS
+            dest_key = "tournament"
+        else:
+            continue
+
+        parsed = {}
+        for i, field_name in enumerate(field_map):
+            if field_name.startswith("_"):
+                continue  # Skip placeholder fields
+            if i < len(values):
+                val = values[i]
+                # Try to convert numeric strings
+                if isinstance(val, str):
+                    try:
+                        val = float(val)
+                    except (ValueError, TypeError):
+                        pass
+                # Convert to int where appropriate (ranks, counts, not percentages/ratings)
+                if isinstance(val, float) and val == int(val) and "pct" not in field_name and "bpi" != field_name:
+                    val = int(val)
+                parsed[field_name] = val
+            else:
+                parsed[field_name] = None
+        result[dest_key] = parsed
+
+    # Extract region from tournament totals (position 2 in totals array)
+    for cat in team_entry.get("categories", []):
+        if cat.get("name") in ("tournament", "bpiTournament"):
+            totals = cat.get("totals", [])
+            if isinstance(totals, list) and len(totals) > 2 and "tournament" in result:
+                result["tournament"]["region"] = totals[2] if totals[2] else ""
+
+    return result
+
+
+def _fetch_bpi_for_team(team_id):
+    """Fetch BPI data for a specific team by paginating through results.
+
+    The ESPN BPI endpoint doesn't support server-side team filtering,
+    so we paginate and search client-side.
+    """
+    team_id_str = str(team_id)
+    page = 1
+    while page <= 8:  # Max 8 pages of 50 = 400 teams (covers all D1)
+        espn_params = {
+            "region": "us",
+            "lang": "en",
+            "contentorigin": "espn",
+            "limit": 50,
+            "page": page,
+        }
+        data = espn_fitt_request(SPORT_PATH, "powerindex", espn_params)
+        if data.get("error"):
+            return None
+
+        for entry in data.get("teams", []):
+            if str(entry.get("team", {}).get("id", "")) == team_id_str:
+                return _normalize_bpi_team(entry)
+
+        pagination = data.get("pagination", {})
+        if page >= pagination.get("pageCount", 1):
+            break
+        page += 1
+    return None
+
+
+def get_power_index(request_data):
+    """Get BPI (Basketball Power Index) ratings for college basketball teams.
+
+    Args:
+        team_id: Optional ESPN team ID to filter to one team.
+        limit: Max teams to return (default 25).
+        page: Page number for pagination (default 1).
+    """
+    params = request_data.get("params", {})
+    team_id = params.get("team_id")
+    limit = params.get("limit", 25)
+    page = params.get("page", 1)
+
+    # Single-team lookup requires client-side filtering
+    if team_id:
+        team = _fetch_bpi_for_team(team_id)
+        if not team:
+            return {"error": True, "message": f"No BPI data found for team {team_id}"}
+        return {"teams": [team], "count": 1}
+
+    espn_params = {
+        "region": "us",
+        "lang": "en",
+        "contentorigin": "espn",
+        "limit": limit,
+        "page": page,
+    }
+
+    data = espn_fitt_request(SPORT_PATH, "powerindex", espn_params)
+    if data.get("error"):
+        return data
+
+    teams = []
+    for entry in data.get("teams", []):
+        teams.append(_normalize_bpi_team(entry))
+
+    result = {"teams": teams, "count": len(teams)}
+
+    # Include pagination info if available
+    pagination = data.get("pagination", {})
+    if pagination:
+        result["page"] = pagination.get("page", page)
+        result["page_count"] = pagination.get("pageCount", 1)
+        result["total"] = pagination.get("count", len(teams))
+
+    return result
+
+
+def get_tournament_projections(request_data=None):
+    """Get NCAA tournament projections with seeds, regions, and advancement probabilities.
+
+    Args:
+        limit: Max teams to return (default 68 for full tournament field).
+    """
+    params = (request_data or {}).get("params", {})
+    limit = params.get("limit", 68)
+
+    # Fetch enough pages to cover the tournament field
+    all_teams = []
+    page = 1
+    page_size = min(limit, 50)
+    while len(all_teams) < limit:
+        espn_params = {
+            "region": "us",
+            "lang": "en",
+            "contentorigin": "espn",
+            "limit": page_size,
+            "page": page,
+        }
+        data = espn_fitt_request(SPORT_PATH, "powerindex", espn_params)
+        if data.get("error"):
+            if not all_teams:
+                return data
+            break
+
+        batch = data.get("teams", [])
+        if not batch:
+            break
+
+        for entry in batch:
+            team = _normalize_bpi_team(entry)
+            # Only include teams with tournament data (projected seed)
+            if team.get("tournament") or team.get("resume", {}).get("proj_seed"):
+                all_teams.append(team)
+
+        pagination = data.get("pagination", {})
+        page_count = pagination.get("pageCount", 1)
+        if page >= page_count:
+            break
+        page += 1
+
+    # Sort by projected seed (resume.proj_seed), then by BPI rank
+    def sort_key(t):
+        seed = t.get("resume", {}).get("proj_seed")
+        bpi_rank = t.get("bpi", {}).get("bpi_rank")
+        if seed is not None:
+            try:
+                return (0, float(seed), float(bpi_rank or 999))
+            except (ValueError, TypeError):
+                pass
+        return (1, 999, float(bpi_rank or 999))
+
+    all_teams.sort(key=sort_key)
+    all_teams = all_teams[:limit]
+
+    # Group by region
+    regions = {}
+    for team in all_teams:
+        region = team.get("tournament", {}).get("region", "Unknown")
+        if region not in regions:
+            regions[region] = []
+        regions[region].append(team)
+
+    return {
+        "teams": all_teams,
+        "regions": regions,
+        "count": len(all_teams),
+    }
+
+
+def compare_teams(request_data):
+    """Compare two college basketball teams using BPI ratings and season stats.
+
+    Args:
+        team_a_id: ESPN team ID for team A.
+        team_b_id: ESPN team ID for team B.
+    """
+    params = request_data.get("params", {})
+    team_a_id = params.get("team_a_id")
+    team_b_id = params.get("team_b_id")
+
+    if not team_a_id or not team_b_id:
+        return {"error": True, "message": "team_a_id and team_b_id are required"}
+
+    # Fetch BPI for both teams
+    bpi_a = get_power_index({"params": {"team_id": team_a_id, "limit": 1}})
+    bpi_b = get_power_index({"params": {"team_id": team_b_id, "limit": 1}})
+
+    if bpi_a.get("error"):
+        return {"error": True, "message": f"Failed to fetch BPI for team {team_a_id}: {bpi_a.get('message', '')}"}
+    if bpi_b.get("error"):
+        return {"error": True, "message": f"Failed to fetch BPI for team {team_b_id}: {bpi_b.get('message', '')}"}
+
+    team_a = bpi_a.get("teams", [{}])[0] if bpi_a.get("teams") else {}
+    team_b = bpi_b.get("teams", [{}])[0] if bpi_b.get("teams") else {}
+
+    if not team_a:
+        return {"error": True, "message": f"No BPI data found for team {team_a_id}"}
+    if not team_b:
+        return {"error": True, "message": f"No BPI data found for team {team_b_id}"}
+
+    # Compute matchup probability using BPI difference
+    bpi_val_a = team_a.get("bpi", {}).get("bpi", 0)
+    bpi_val_b = team_b.get("bpi", {}).get("bpi", 0)
+
+    if isinstance(bpi_val_a, (int, float)) and isinstance(bpi_val_b, (int, float)):
+        bpi_diff = bpi_val_a - bpi_val_b
+        # Logistic model calibrated to BPI scale
+        import math
+        win_prob_a = 1.0 / (1.0 + math.pow(10, -bpi_diff / 10.0))
+        win_prob_b = 1.0 - win_prob_a
+    else:
+        bpi_diff = None
+        win_prob_a = None
+        win_prob_b = None
+
+    # Fetch season stats for both teams
+    stats_a = get_team_stats({"params": {"team_id": team_a_id}})
+    stats_b = get_team_stats({"params": {"team_id": team_b_id}})
+
+    comparison = {
+        "team_a": team_a,
+        "team_b": team_b,
+        "matchup": {
+            "bpi_diff": round(bpi_diff, 2) if bpi_diff is not None else None,
+            "win_prob_a": round(win_prob_a, 4) if win_prob_a is not None else None,
+            "win_prob_b": round(win_prob_b, 4) if win_prob_b is not None else None,
+        },
+    }
+
+    if not stats_a.get("error"):
+        comparison["stats_a"] = stats_a
+    if not stats_b.get("error"):
+        comparison["stats_b"] = stats_b
+
+    return comparison
+
+
+def find_upset_candidates(request_data=None):
+    """Find potential upset candidates in the NCAA tournament based on BPI vs seed differential.
+
+    Args:
+        min_seed: Minimum seed to consider (default 10).
+        max_seed: Maximum seed to consider (default 16).
+    """
+    params = (request_data or {}).get("params", {})
+    min_seed = params.get("min_seed", 10)
+    max_seed = params.get("max_seed", 16)
+
+    # Fetch tournament projections
+    projections = get_tournament_projections({"params": {"limit": 68}})
+    if projections.get("error"):
+        return projections
+
+    candidates = []
+    for team in projections.get("teams", []):
+        resume = team.get("resume", {})
+        bpi_data = team.get("bpi", {})
+
+        proj_seed = resume.get("proj_seed")
+        bpi_rank = bpi_data.get("bpi_rank")
+        bpi_val = bpi_data.get("bpi")
+
+        if proj_seed is None or bpi_rank is None:
+            continue
+
+        try:
+            seed = int(proj_seed)
+            rank = int(bpi_rank)
+        except (ValueError, TypeError):
+            continue
+
+        if seed < min_seed or seed > max_seed:
+            continue
+
+        # Upset score: how much better the team is than their seed implies
+        # A 12-seed with BPI rank 25 has a big differential (seed expects ~rank 45-48)
+        # Expected rank for a seed: rough mapping where 1-seed ≈ rank 1-4, 16-seed ≈ rank 61-68
+        expected_rank = seed * 4
+        upset_score = expected_rank - rank
+
+        tournament = team.get("tournament", {})
+
+        candidates.append({
+            "team": team.get("team", {}),
+            "seed": seed,
+            "bpi_rank": rank,
+            "bpi": bpi_val,
+            "expected_rank_for_seed": expected_rank,
+            "upset_score": upset_score,
+            "advancement": {
+                "round_of_32_pct": tournament.get("round_of_32_pct"),
+                "sweet_sixteen_pct": tournament.get("sweet_sixteen_pct"),
+                "elite_eight_pct": tournament.get("elite_eight_pct"),
+                "final_four_pct": tournament.get("final_four_pct"),
+            },
+            "resume": resume,
+        })
+
+    # Sort by upset score descending (higher = better upset candidate)
+    candidates.sort(key=lambda c: c.get("upset_score", 0), reverse=True)
+
+    return {
+        "candidates": candidates,
+        "count": len(candidates),
+        "filters": {"min_seed": min_seed, "max_seed": max_seed},
+    }

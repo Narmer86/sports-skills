@@ -811,3 +811,44 @@ def line_movement(request_data: dict) -> dict:
         )
 
     return _success(data, msg)
+
+
+# ============================================================
+# 9. Matchup Probability (BPI-based)
+# ============================================================
+
+
+def matchup_probability(request_data: dict) -> dict:
+    """Compute win probability from BPI ratings using a logistic model.
+
+    Pure computation, no network calls. Input two BPI ratings and get the
+    head-to-head win probability.
+
+    Formula: P(A wins) = 1 / (1 + 10^(-(bpi_a - bpi_b) / scale))
+    where scale = 10 is calibrated to BPI's typical range.
+
+    Params:
+        bpi_a (float): BPI rating for team A.
+        bpi_b (float): BPI rating for team B.
+    """
+    params = request_data.get("params", {})
+    try:
+        bpi_a = float(params.get("bpi_a", 0))
+        bpi_b = float(params.get("bpi_b", 0))
+    except (TypeError, ValueError) as e:
+        return _error(f"Invalid parameters: {e}")
+
+    bpi_diff = bpi_a - bpi_b
+    win_prob_a = 1.0 / (1.0 + 10 ** (-bpi_diff / 10.0))
+    win_prob_b = 1.0 - win_prob_a
+
+    return _success(
+        {
+            "win_prob_a": round(win_prob_a, 6),
+            "win_prob_b": round(win_prob_b, 6),
+            "bpi_a": bpi_a,
+            "bpi_b": bpi_b,
+            "bpi_diff": round(bpi_diff, 2),
+        },
+        f"Team A: {win_prob_a:.1%} | Team B: {win_prob_b:.1%} (BPI diff: {bpi_diff:+.1f})",
+    )

@@ -7,6 +7,12 @@ from __future__ import annotations
 
 from sports_skills._response import wrap
 from sports_skills.cbb._connector import (
+    compare_teams as _compare_teams,
+)
+from sports_skills.cbb._connector import (
+    find_upset_candidates as _find_upset_candidates,
+)
+from sports_skills.cbb._connector import (
     get_futures as _get_futures,
 )
 from sports_skills.cbb._connector import (
@@ -20,6 +26,9 @@ from sports_skills.cbb._connector import (
 )
 from sports_skills.cbb._connector import (
     get_player_stats as _get_player_stats,
+)
+from sports_skills.cbb._connector import (
+    get_power_index as _get_power_index,
 )
 from sports_skills.cbb._connector import (
     get_rankings as _get_rankings,
@@ -44,6 +53,9 @@ from sports_skills.cbb._connector import (
 )
 from sports_skills.cbb._connector import (
     get_teams as _get_teams,
+)
+from sports_skills.cbb._connector import (
+    get_tournament_projections as _get_tournament_projections,
 )
 from sports_skills.cbb._connector import (
     get_win_probability as _get_win_probability,
@@ -201,3 +213,47 @@ def get_player_stats(
             )
         )
     )
+
+
+def get_power_index(
+    *, team_id: str | None = None, limit: int | None = None, page: int | None = None
+) -> dict:
+    """Get BPI (Basketball Power Index) ratings for college basketball teams.
+
+    Args:
+        team_id: Optional ESPN team ID to filter to one team.
+        limit: Max teams to return. Defaults to 25.
+        page: Page number for pagination. Defaults to 1.
+    """
+    return wrap(_get_power_index(_params(team_id=team_id, limit=limit, page=page)))
+
+
+def get_tournament_projections(*, limit: int | None = None) -> dict:
+    """Get NCAA tournament projections with seeds, regions, and advancement probabilities.
+
+    Args:
+        limit: Max teams to return. Defaults to 68 for full tournament field.
+    """
+    return wrap(_get_tournament_projections(_params(limit=limit)))
+
+
+def compare_teams(*, team_a_id: str, team_b_id: str) -> dict:
+    """Compare two college basketball teams using BPI ratings and season stats.
+
+    Args:
+        team_a_id: ESPN team ID for team A.
+        team_b_id: ESPN team ID for team B.
+    """
+    return wrap(_compare_teams(_params(team_a_id=team_a_id, team_b_id=team_b_id)))
+
+
+def find_upset_candidates(
+    *, min_seed: int | None = None, max_seed: int | None = None
+) -> dict:
+    """Find potential upset candidates based on BPI vs seed differential.
+
+    Args:
+        min_seed: Minimum seed to consider. Defaults to 10.
+        max_seed: Maximum seed to consider. Defaults to 16.
+    """
+    return wrap(_find_upset_candidates(_params(min_seed=min_seed, max_seed=max_seed)))

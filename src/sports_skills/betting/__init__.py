@@ -13,6 +13,7 @@ from sports_skills.betting._calcs import find_arbitrage as _find_arbitrage
 from sports_skills.betting._calcs import find_edge as _find_edge
 from sports_skills.betting._calcs import kelly_criterion as _kelly_criterion
 from sports_skills.betting._calcs import line_movement as _line_movement
+from sports_skills.betting._calcs import matchup_probability as _matchup_probability
 from sports_skills.betting._calcs import parlay_analysis as _parlay_analysis
 
 
@@ -82,6 +83,16 @@ def parlay_analysis(
             correlation=correlation,
         )
     )
+
+
+def matchup_probability(*, bpi_a: float, bpi_b: float) -> dict:
+    """Compute win probability from BPI ratings using a logistic model.
+
+    Args:
+        bpi_a: BPI rating for team A.
+        bpi_b: BPI rating for team B.
+    """
+    return _matchup_probability(_req(bpi_a=bpi_a, bpi_b=bpi_b))
 
 
 def line_movement(
