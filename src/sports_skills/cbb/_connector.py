@@ -828,7 +828,7 @@ def _normalize_bpi_team(team_entry):
                     except (ValueError, TypeError):
                         pass
                 # Convert to int where appropriate (ranks, counts, not percentages/ratings)
-                if isinstance(val, float) and val == int(val) and "pct" not in field_name and "bpi" != field_name:
+                if isinstance(val, float) and val == int(val) and "pct" not in field_name and field_name != "bpi":
                     val = int(val)
                 parsed[field_name] = val
             else:
